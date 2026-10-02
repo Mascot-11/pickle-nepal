@@ -1,0 +1,59 @@
+# Local development stack: web + PostgreSQL (§88).
+# Secrets come from .env — never hardcoded here.
+#
+# Host ports are exposed as ${DB_PORT:-5433} and ${WEB_PORT:-3100} because 5432
+# and 3000 are commonly taken by a local Postgres or another project. Override
+# them in .env if you prefer.
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: picklenepal
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    volumes:
+      - picklenepal-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d picklenepal"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      # Inside the compose network the DB is always `db` on its default port,
+      # regardless of the host port published above.
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/picklenepal?schema=public
+    ports:
+      - "${WEB_PORT:-3100}:3000"
+
+  # One-off migrations + demo seed.
+  #   docker compose --profile setup run --rm db-setup
+  # Runs from the build stage because the runtime image is production-only,
+  # non-root, and has no dev tooling (tsx) to execute prisma/seed.ts.
+  db-setup:
+    build:
+      context: .
+      target: builder
+    profiles: ["setup"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/picklenepal?schema=public
+    command: sh -lc "pnpm db:deploy && pnpm db:seed"
+
+volumes:
+  picklenepal-db:

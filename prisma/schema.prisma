@@ -1,0 +1,1575 @@
+// PickleNepal — Prisma schema
+// Reference: REQUIREMENT.md §68 (entity list), §69 (integrity rules), §70 (indexing)
+//
+// Money is stored as integer minor units (rupees) in Int columns named `*Paisa`
+// is avoided — we store whole NPR rupees in Int fields to match `NPR 500` display
+// while keeping integers (no float). See §5.3.
+//
+// All timestamps are stored as UTC `timestamptz` and rendered in Asia/Kathmandu.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum UserRole {
+  PLAYER
+  CLUB_ADMIN
+  COACH
+  ORGANIZER
+  SELLER
+  MODERATOR
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+enum City {
+  KATHMANDU
+  LALITPUR
+  BHAKTAPUR
+  POKHARA
+  CHITWAN
+  BIRATNAGAR
+  BUTWAL
+  DHARAN
+  OTHER_NEPAL
+}
+
+enum SkillLevel {
+  COMPLETE_BEGINNER
+  BEGINNER
+  INTERMEDIATE
+  UPPER_INTERMEDIATE
+  ADVANCED
+  COMPETITIVE
+}
+
+enum PlayFormat {
+  SINGLES
+  DOUBLES
+  BOTH
+}
+
+enum HandPosition {
+  LEFT
+  RIGHT
+  EITHER
+}
+
+enum AvailabilitySlot {
+  EARLY_MORNING
+  MORNING
+  AFTERNOON
+  EVENING
+  NIGHT
+  WEEKENDS
+}
+
+enum PlayFrequency {
+  OCCASIONALLY
+  ONE_TO_TWO_WEEKLY
+  THREE_TO_FOUR_WEEKLY
+  FIVE_PLUS_WEEKLY
+}
+
+enum ProfileVisibility {
+  PUBLIC
+  COMMUNITY_ONLY
+  PRIVATE
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum IndoorOutdoor {
+  INDOOR
+  OUTDOOR
+}
+
+enum CourtSurface {
+  CONCRETE
+  ASPHALT
+  ACRYLIC
+  OTHER
+}
+
+enum GameStatus {
+  DRAFT
+  OPEN
+  FULL
+  STARTED
+  COMPLETED
+  CANCELLED
+}
+
+enum GameType {
+  SINGLES
+  DOUBLES
+  OPEN_PLAY
+  FRIENDLY
+  COMPETITIVE
+  DRILL_SESSION
+  KING_OF_COURT
+}
+
+enum ParticipantRole {
+  PLAYER
+  CREATOR
+  WAITLIST_PROMOTED
+}
+
+enum EventType {
+  OPEN_PLAY
+  SOCIAL_NIGHT
+  MEETUP
+  COACHING_SESSION
+  DEMO_DAY
+  TOURNAMENT
+  COMMUNITY_EVENT
+}
+
+enum TournamentStatus {
+  DRAFT
+  UPCOMING
+  REGISTRATION_OPEN
+  REGISTRATION_CLOSED
+  LIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum TournamentFormat {
+  ROUND_ROBIN
+  SINGLE_ELIMINATION
+  HYBRID
+}
+
+enum MatchStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  WALKWAY
+  CANCELLED
+}
+
+enum PostType {
+  GENERAL
+  LOOKING_FOR_PLAYERS
+  TOURNAMENT
+  COURT
+  GEAR
+  COACHING
+  ANNOUNCEMENT
+}
+
+enum CommentStatus {
+  VISIBLE
+  HIDDEN
+  REMOVED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum PaymentProvider {
+  ESEWA
+  KHALTI
+  STRIPE
+  MOCK
+}
+
+enum TransactionType {
+  CHARGE
+  REFUND
+  COMMISSION
+  PAYOUT
+}
+
+enum ListingCategory {
+  PADDLES
+  BALLS
+  SHOES
+  BAGS
+  CLOTHING
+  ACCESSORIES
+  COURT_EQUIPMENT
+}
+
+enum ListingCondition {
+  NEW
+  LIKE_NEW
+  GOOD
+  FAIR
+  USED
+}
+
+enum ListingStatus {
+  ACTIVE
+  SOLD
+  ARCHIVED
+}
+
+enum VerificationType {
+  CLUB
+  COACH
+  ORGANIZER
+  SELLER
+}
+
+enum VerificationStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  MORE_INFORMATION_REQUIRED
+}
+
+enum ReportReason {
+  SPAM
+  HARASSMENT
+  SCAM
+  FAKE_INFORMATION
+  INAPPROPRIATE_CONTENT
+  OTHER
+}
+
+enum ReportStatus {
+  OPEN
+  REVIEWING
+  RESOLVED
+  DISMISSED
+}
+
+enum ModerationAction {
+  DISMISS
+  REMOVE
+  WARN
+  SUSPEND
+  BAN
+}
+
+enum ReportTargetType {
+  USER
+  POST
+  COMMENT
+  GAME
+  COURT
+  CLUB
+  EVENT
+  TOURNAMENT
+  REVIEW
+  LISTING
+  MESSAGE
+}
+
+enum ReviewSubjectType {
+  COURT
+  CLUB
+  COACH
+}
+
+enum NotificationType {
+  GAME_JOINED
+  GAME_LEFT
+  GAME_FULL
+  WAITLIST_AVAILABLE
+  WAITLIST_PROMOTED
+  GAME_REMINDER
+  GAME_UPDATED
+  GAME_CANCELLED
+  TOURNAMENT_REGISTRATION
+  TOURNAMENT_REMINDER
+  TOURNAMENT_UPDATE
+  EVENT_REMINDER
+  EVENT_UPDATE
+  LIKE
+  COMMENT
+  FOLLOW
+  MESSAGE
+  BADGE_EARNED
+  VERIFICATION_RESULT
+  BOOKING_STATUS
+  REVIEW_REMINDER
+  SYSTEM
+}
+
+enum NotificationCategory {
+  GAME
+  TOURNAMENT
+  EVENT
+  SOCIAL
+  MESSAGE
+  MARKETING
+}
+
+enum SponsorPlacement {
+  HOMEPAGE
+  TOURNAMENT
+  EVENT
+  COMMUNITY
+}
+
+enum AnalyticsEventName {
+  SIGNUP
+  LOGIN
+  PROFILE_COMPLETED
+  GAME_CREATED
+  GAME_JOINED
+  GAME_LEFT
+  COURT_VIEWED
+  PLAYER_VIEWED
+  CLUB_VIEWED
+  TOURNAMENT_VIEWED
+  TOURNAMENT_REGISTERED
+  EVENT_JOINED
+  POST_CREATED
+  POST_LIKED
+  MESSAGE_SENT
+  BOOKING_CREATED
+  BOOKING_COMPLETED
+}
+
+enum SavedItemType {
+  GAME
+  POST
+  COURT
+  LISTING
+  TOURNAMENT
+}
+
+enum ClubMemberRole {
+  OWNER
+  ADMIN
+  COACH
+  STAFF
+}
+
+// ---------------------------------------------------------------------------
+// Identity & accounts (§68 User, Account, Session, PlayerProfile)
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String     @id @default(uuid()) @db.Uuid
+  email         String     @unique
+  emailVerified DateTime?
+  passwordHash  String?
+  fullName      String
+  phone         String
+  username      String     @unique
+  role          UserRole   @default(PLAYER)
+  status        UserStatus @default(ACTIVE)
+  city          City
+  avatarUrl     String?
+  coverUrl      String?
+  bio           String?
+  dateOfBirth   DateTime?  @db.Date
+  gender        Gender?
+  isOnboarded   Boolean    @default(false)
+  referrerCode  String?    @unique
+  referredById  String?    @unique @db.Uuid
+  bannedAt      DateTime?
+  bannedReason  String?
+  suspendedAt   DateTime?
+  suspendReason String?
+  lastLoginAt   DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  deletedAt     DateTime?
+
+  profile                 PlayerProfile?
+  accounts                Account[]
+  sessions                Session[]
+  passwordResetTokens     PasswordResetToken[]
+  gameParticipants        GameParticipant[]
+  gamesCreated            Game[]                    @relation("GameCreator")
+  waitlistEntries         GameWaitlist[]
+  clubsOwned              Club[]                    @relation("ClubOwner")
+  clubMemberships         ClubMember[]
+  coachProfile            CoachProfile?
+  eventsOrganized         Event[]                   @relation("EventOrganizer")
+  eventParticipations     EventParticipant[]
+  tournamentsOrganized    Tournament[]              @relation("TournamentOrganizer")
+  tournamentParticipants  TournamentParticipant[]
+  tournamentTeamMembers   TournamentTeamMember[]    @relation("TeamPlayer")
+  lessonRequests          LessonRequest[]
+  tournamentTeamsCreated  TournamentTeam[]          @relation("TeamCreator")
+  tournamentMatchesA      TournamentMatch[]         @relation("MatchPlayerA")
+  tournamentMatchesB      TournamentMatch[]         @relation("MatchPlayerB")
+  tournamentMatchesWon    TournamentMatch[]         @relation("MatchWinner")
+  posts                   CommunityPost[]
+  comments                Comment[]
+  likes                   Like[]
+  followsGiven            Follow[]                  @relation("FollowFollower")
+  followsReceived         Follow[]                  @relation("FollowFollowing")
+  savedItems              SavedItem[]
+  conversationMemberships ConversationParticipant[]
+  messagesSent            Message[]
+  blockedUsers            Block[]                   @relation("Blocker")
+  blockedBy               Block[]                   @relation("Blocked")
+  notifications           Notification[]
+  notificationPreference  NotificationPreference?
+  badges                  UserBadge[]
+  reviewsWritten          Review[]
+  listings                MarketplaceListing[]
+  marketplaceFavorites    MarketplaceFavorite[]
+  sellerProfile           SellerProfile?
+  verificationRequests    VerificationRequest[]     @relation("VerificationApplicant")
+  verificationReviews     VerificationRequest[]     @relation("VerificationReviewer")
+  reportsFiled            Report[]                  @relation("ReportReporter")
+  auditLogs               AuditLog[]
+  bookings                CourtBooking[]
+  payments                Payment[]                 @relation("UserPayments")
+  referralsMade           Referral[]                @relation("ReferralReferrer")
+  referralRecord          Referral?                 @relation("ReferralReferred")
+  analyticsEvents         AnalyticsEvent[]
+  sponsorCampaigns        Sponsor[]                 @relation("SponsorManager")
+  matchResults            MatchResult[]
+  blockedByModeration     Report[]                  @relation("ReportTargetUser")
+
+  @@index([city])
+  @@index([role])
+  @@index([status])
+  @@index([createdAt])
+  @@index([fullName])
+}
+
+model Account {
+  id                String  @id @default(uuid()) @db.Uuid
+  userId            String  @db.Uuid
+  type              String
+  provider          String
+  providerAccountId String
+  refreshToken      String?
+  accessToken       String?
+  expiresAt         Int?
+  tokenType         String?
+  scope             String?
+  idToken           String?
+  sessionState      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(uuid()) @db.Uuid
+  sessionToken String   @unique
+  userId       String   @db.Uuid
+  expires      DateTime
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model RateLimitEntry {
+  id        String   @id @default(uuid()) @db.Uuid
+  key       String
+  hits      Int      @default(0)
+  windowEnd DateTime
+
+  @@unique([key])
+  @@index([windowEnd])
+}
+
+model PlayerProfile {
+  id                String             @id @default(uuid()) @db.Uuid
+  userId            String             @unique @db.Uuid
+  bio               String?
+  skillLevel        SkillLevel?
+  duprRating        Float?
+  duprSource        String?
+  preferredFormats  PlayFormat[]
+  position          HandPosition?
+  availability      AvailabilitySlot[]
+  frequency         PlayFrequency?
+  instagram         String?
+  facebook          String?
+  visibility        ProfileVisibility  @default(PUBLIC)
+  showDOB           Boolean            @default(false)
+  points            Int                @default(0)
+  gamesPlayed       Int                @default(0)
+  gamesWon          Int                @default(0)
+  gamesLost         Int                @default(0)
+  gamesCreated      Int                @default(0)
+  gamesJoined       Int                @default(0)
+  tournamentsPlayed Int                @default(0)
+  tournamentWins    Int                @default(0)
+  podiums           Int                @default(0)
+  eventsAttended    Int                @default(0)
+  profileViews      Int                @default(0)
+  onboardingStep    Int                @default(0)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  user         User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  favoriteCity City?
+
+  @@index([skillLevel])
+  @@index([visibility])
+  @@index([points])
+}
+
+// ---------------------------------------------------------------------------
+// Clubs, courts, coaches (§24, §22, §44)
+// ---------------------------------------------------------------------------
+
+model Club {
+  id             String    @id @default(uuid()) @db.Uuid
+  slug           String    @unique
+  name           String
+  description    String?
+  logoUrl        String?
+  coverUrl       String?
+  city           City
+  address        String?
+  latitude       Float?
+  longitude      Float?
+  phone          String?
+  email          String?
+  website        String?
+  instagram      String?
+  facebook       String?
+  membershipInfo String?
+  openingHours   Json?
+  isVerified     Boolean   @default(false)
+  verifiedAt     DateTime?
+  profileViews   Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  ownerId       String         @db.Uuid
+  owner         User           @relation("ClubOwner", fields: [ownerId], references: [id])
+  members       ClubMember[]
+  courts        Court[]
+  events        Event[]
+  coaches       CoachProfile[]
+  games         Game[]
+  bookings      CourtBooking[]
+  announcements Announcement[]
+
+  @@index([city])
+  @@index([isVerified])
+}
+
+model ClubMember {
+  id        String         @id @default(uuid()) @db.Uuid
+  clubId    String         @db.Uuid
+  userId    String         @db.Uuid
+  role      ClubMemberRole @default(STAFF)
+  createdAt DateTime       @default(now())
+
+  club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([clubId, userId])
+  @@index([userId])
+}
+
+model Announcement {
+  id        String   @id @default(uuid()) @db.Uuid
+  clubId    String   @db.Uuid
+  authorId  String   @db.Uuid
+  title     String
+  body      String
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@index([clubId, createdAt])
+}
+
+model Court {
+  id                String        @id @default(uuid()) @db.Uuid
+  slug              String        @unique
+  name              String
+  description       String?
+  logoUrl           String?
+  images            String[]
+  city              City
+  address           String?
+  latitude          Float?
+  longitude         Float?
+  numberOfCourts    Int           @default(1)
+  indoorOutdoor     IndoorOutdoor @default(OUTDOOR)
+  surface           CourtSurface  @default(CONCRETE)
+  hasLighting       Boolean       @default(false)
+  amenities         String[]
+  openingHours      Json?
+  pricePerHour      Int?
+  paddleRentalPrice Int?
+  ballRentalPrice   Int?
+  equipmentRental   Boolean       @default(false)
+  phone             String?
+  email             String?
+  website           String?
+  instagram         String?
+  facebook          String?
+  isActive          Boolean       @default(true)
+  profileViews      Int           @default(0)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  deletedAt         DateTime?
+
+  clubId       String?             @db.Uuid
+  club         Club?               @relation(fields: [clubId], references: [id], onDelete: SetNull)
+  availability CourtAvailability[]
+  bookings     CourtBooking[]
+  games        Game[]
+  events       Event[]
+  reviews      Review[]
+  tournaments  Tournament[]
+
+  @@index([city])
+  @@index([clubId])
+  @@index([latitude, longitude])
+}
+
+model CourtAvailability {
+  id        String  @id @default(uuid()) @db.Uuid
+  courtId   String  @db.Uuid
+  dayOfWeek Int
+  opensAt   String
+  closesAt  String
+  isClosed  Boolean @default(false)
+
+  court Court @relation(fields: [courtId], references: [id], onDelete: Cascade)
+
+  @@unique([courtId, dayOfWeek])
+  @@index([courtId])
+}
+
+model CoachProfile {
+  id                String             @id @default(uuid()) @db.Uuid
+  slug              String             @unique
+  userId            String             @unique @db.Uuid
+  clubId            String?            @db.Uuid
+  bio               String?
+  photoUrl          String?
+  experienceYears   Int?
+  city              City
+  latitude          Float?
+  longitude         Float?
+  skillLevelsTaught SkillLevel[]
+  availability      AvailabilitySlot[]
+  pricePerSession   Int?
+  isVerified        Boolean            @default(false)
+  verifiedAt        DateTime?
+  profileViews      Int                @default(0)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  club    Club?           @relation(fields: [clubId], references: [id], onDelete: SetNull)
+  reviews Review[]
+  lessons LessonRequest[]
+
+  @@index([city])
+  @@index([isVerified])
+}
+
+model LessonRequest {
+  id            String   @id @default(uuid()) @db.Uuid
+  coachId       String   @db.Uuid
+  requesterId   String   @db.Uuid
+  message       String
+  preferredDate DateTime @db.Date
+  status        String   @default("PENDING")
+  createdAt     DateTime @default(now())
+
+  coach     CoachProfile @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  requester User         @relation(fields: [requesterId], references: [id], onDelete: Cascade)
+
+  @@index([coachId])
+  @@index([requesterId])
+}
+
+// ---------------------------------------------------------------------------
+// Games (§13-§20)
+// ---------------------------------------------------------------------------
+
+model Game {
+  id                     String     @id @default(uuid()) @db.Uuid
+  title                  String?
+  description            String?
+  type                   GameType
+  format                 PlayFormat
+  skillLevel             SkillLevel
+  skillOpenToAll         Boolean    @default(false)
+  startsAt               DateTime
+  endsAt                 DateTime
+  capacity               Int
+  status                 GameStatus @default(DRAFT)
+  pricePerPerson         Int?
+  city                   City
+  isFree                 Boolean    @default(true)
+  ballInfo               String?
+  equipmentInfo          String?
+  organizerNote          String?
+  waitlistEnabled        Boolean    @default(true)
+  waitlistReserveMinutes Int?
+  cancelledAt            DateTime?
+  cancelReason           String?
+  startedAt              DateTime?
+  completedAt            DateTime?
+  deletedAt              DateTime?
+  createdAt              DateTime   @default(now())
+  updatedAt              DateTime   @updatedAt
+
+  creatorId String  @db.Uuid
+  creator   User    @relation("GameCreator", fields: [creatorId], references: [id])
+  courtId   String  @db.Uuid
+  court     Court   @relation(fields: [courtId], references: [id])
+  clubId    String? @db.Uuid
+  club      Club?   @relation(fields: [clubId], references: [id], onDelete: SetNull)
+
+  participants GameParticipant[]
+  waitlist     GameWaitlist[]
+  results      MatchResult[]
+
+  @@index([startsAt])
+  @@index([city])
+  @@index([status])
+  @@index([courtId])
+  @@index([creatorId])
+  @@index([type, skillLevel])
+}
+
+model GameParticipant {
+  id       String          @id @default(uuid()) @db.Uuid
+  gameId   String          @db.Uuid
+  userId   String          @db.Uuid
+  role     ParticipantRole @default(PLAYER)
+  joinedAt DateTime        @default(now())
+
+  game Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, userId])
+  @@index([userId])
+  @@index([gameId])
+}
+
+model GameWaitlist {
+  id             String    @id @default(uuid()) @db.Uuid
+  gameId         String    @db.Uuid
+  userId         String    @db.Uuid
+  position       Int
+  status         String    @default("WAITING")
+  offeredAt      DateTime?
+  offerExpiresAt DateTime?
+  joinedAt       DateTime  @default(now())
+
+  game Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, userId])
+  @@index([gameId, status, position])
+}
+
+model MatchResult {
+  id           String   @id @default(uuid()) @db.Uuid
+  gameId       String   @db.Uuid
+  playerId     String   @db.Uuid
+  opponentId   String?  @db.Uuid
+  opponentName String?
+  scoreFor     Int
+  scoreAgainst Int
+  isWin        Boolean
+  playedAt     DateTime @default(now())
+
+  game   Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  player User @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId, playedAt])
+  @@index([gameId])
+}
+
+// ---------------------------------------------------------------------------
+// Bookings & payments (§26, §48)
+// ---------------------------------------------------------------------------
+
+model CourtBooking {
+  id           String        @id @default(uuid()) @db.Uuid
+  userId       String        @db.Uuid
+  clubId       String?       @db.Uuid
+  courtId      String        @db.Uuid
+  bookingDate  DateTime      @db.Date
+  startsAt     DateTime
+  endsAt       DateTime
+  price        Int
+  status       BookingStatus @default(PENDING)
+  notes        String?
+  cancelledAt  DateTime?
+  cancelReason String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  club    Club?    @relation(fields: [clubId], references: [id], onDelete: SetNull)
+  court   Court    @relation(fields: [courtId], references: [id], onDelete: Cascade)
+  payment Payment?
+
+  @@index([courtId, bookingDate])
+  @@index([userId])
+  @@index([status])
+}
+
+model Payment {
+  id            String          @id @default(uuid()) @db.Uuid
+  userId        String          @db.Uuid
+  bookingId     String?         @unique @db.Uuid
+  amount        Int
+  feeAmount     Int             @default(0)
+  currency      String          @default("NPR")
+  provider      PaymentProvider
+  status        PaymentStatus   @default(PENDING)
+  providerRef   String?         @unique
+  failureReason String?
+  receiptUrl    String?
+  refundedAt    DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  user         User          @relation("UserPayments", fields: [userId], references: [id], onDelete: Cascade)
+  booking      CourtBooking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  tournament   Tournament?   @relation("TournamentPayments", fields: [tournamentId], references: [id], onDelete: SetNull)
+  tournamentId String?       @db.Uuid
+  transactions Transaction[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Transaction {
+  id          String          @id @default(uuid()) @db.Uuid
+  paymentId   String?         @db.Uuid
+  type        TransactionType
+  amount      Int
+  currency    String          @default("NPR")
+  status      PaymentStatus   @default(PENDING)
+  provider    PaymentProvider
+  providerRef String?
+  metadata    Json?
+  createdAt   DateTime        @default(now())
+
+  payment Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@index([paymentId])
+}
+
+// ---------------------------------------------------------------------------
+// Events (§27)
+// ---------------------------------------------------------------------------
+
+model Event {
+  id          String    @id @default(uuid()) @db.Uuid
+  slug        String    @unique
+  title       String
+  description String?
+  imageUrl    String?
+  type        EventType
+  city        City
+  venue       String
+  latitude    Float?
+  longitude   Float?
+  startsAt    DateTime
+  endsAt      DateTime
+  capacity    Int?
+  cost        Int?
+  isCancelled Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  organizerId String  @db.Uuid
+  organizer   User    @relation("EventOrganizer", fields: [organizerId], references: [id])
+  courtId     String? @db.Uuid
+  court       Court?  @relation(fields: [courtId], references: [id], onDelete: SetNull)
+  clubId      String? @db.Uuid
+  club        Club?   @relation(fields: [clubId], references: [id], onDelete: SetNull)
+
+  participants EventParticipant[]
+
+  @@index([startsAt])
+  @@index([city])
+  @@index([organizerId])
+}
+
+model EventParticipant {
+  id       String   @id @default(uuid()) @db.Uuid
+  eventId  String   @db.Uuid
+  userId   String   @db.Uuid
+  joinedAt DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// Tournaments (§28-§32)
+// ---------------------------------------------------------------------------
+
+model Tournament {
+  id                   String           @id @default(uuid()) @db.Uuid
+  slug                 String           @unique
+  name                 String
+  description          String?
+  rules                String?
+  posterUrl            String?
+  city                 City
+  venue                String
+  latitude             Float?
+  longitude            Float?
+  startsAt             DateTime
+  endsAt               DateTime
+  registrationDeadline DateTime
+  entryFee             Int              @default(0)
+  prizeInfo            String?
+  contactInfo          String?
+  format               TournamentFormat @default(SINGLE_ELIMINATION)
+  status               TournamentStatus @default(DRAFT)
+  maxParticipants      Int?
+  currentRound         Int              @default(0)
+  standingsPublished   Boolean          @default(false)
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  organizerId String  @db.Uuid
+  organizer   User    @relation("TournamentOrganizer", fields: [organizerId], references: [id])
+  courtId     String? @db.Uuid
+  court       Court?  @relation(fields: [courtId], references: [id], onDelete: SetNull)
+
+  categories         TournamentCategory[]
+  participants       TournamentParticipant[]
+  teams              TournamentTeam[]
+  matches            TournamentMatch[]
+  tournamentPayments Payment[]               @relation("TournamentPayments")
+
+  @@index([startsAt])
+  @@index([status])
+  @@index([city])
+  @@index([organizerId])
+}
+
+model TournamentCategory {
+  id           String     @id @default(uuid()) @db.Uuid
+  tournamentId String     @db.Uuid
+  name         String
+  format       PlayFormat
+  maxEntries   Int?
+  isDoubles    Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+
+  tournament   Tournament              @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  participants TournamentParticipant[]
+  teams        TournamentTeam[]
+  matches      TournamentMatch[]
+
+  @@unique([tournamentId, name])
+  @@index([tournamentId])
+}
+
+model TournamentParticipant {
+  id           String    @id @default(uuid()) @db.Uuid
+  tournamentId String    @db.Uuid
+  categoryId   String    @db.Uuid
+  userId       String    @db.Uuid
+  seed         Int?
+  status       String    @default("REGISTERED")
+  registeredAt DateTime  @default(now())
+  paidAt       DateTime?
+
+  tournament Tournament         @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  category   TournamentCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, categoryId, userId])
+  @@index([userId])
+}
+
+model TournamentTeam {
+  id           String   @id @default(uuid()) @db.Uuid
+  tournamentId String   @db.Uuid
+  categoryId   String   @db.Uuid
+  name         String?
+  createdAt    DateTime @default(now())
+
+  tournament  Tournament             @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  category    TournamentCategory     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  members     TournamentTeamMember[]
+  createdById String?                @db.Uuid
+  createdBy   User?                  @relation("TeamCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  matchesAsA  TournamentMatch[]      @relation("MatchTeamA")
+  matchesAsB  TournamentMatch[]      @relation("MatchTeamB")
+
+  @@unique([tournamentId, categoryId, name])
+  @@index([categoryId])
+}
+
+model TournamentTeamMember {
+  id       String @id @default(uuid()) @db.Uuid
+  teamId   String @db.Uuid
+  playerId String @db.Uuid
+  position Int    @default(1)
+
+  team   TournamentTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  player User           @relation("TeamPlayer", fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, playerId])
+  @@index([teamId])
+  @@index([playerId])
+}
+
+model TournamentMatch {
+  id           String      @id @default(uuid()) @db.Uuid
+  tournamentId String      @db.Uuid
+  categoryId   String      @db.Uuid
+  round        Int
+  position     Int
+  playerAId    String?     @db.Uuid
+  playerBId    String?     @db.Uuid
+  teamAId      String?     @db.Uuid
+  teamBId      String?     @db.Uuid
+  scoreA       Int?
+  scoreB       Int?
+  winnerId     String?     @db.Uuid
+  winnerTeamId String?     @db.Uuid
+  scheduledAt  DateTime?
+  courtId      String?     @db.Uuid
+  status       MatchStatus @default(SCHEDULED)
+  playedAt     DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  tournament  Tournament         @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  category    TournamentCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  playerA     User?              @relation("MatchPlayerA", fields: [playerAId], references: [id])
+  playerB     User?              @relation("MatchPlayerB", fields: [playerBId], references: [id])
+  winner      User?              @relation("MatchWinner", fields: [winnerId], references: [id])
+  teamA       TournamentTeam?    @relation("MatchTeamA", fields: [teamAId], references: [id], onDelete: SetNull)
+  teamB       TournamentTeam?    @relation("MatchTeamB", fields: [teamBId], references: [id], onDelete: SetNull)
+  nextMatchId String?            @db.Uuid
+
+  @@index([tournamentId, categoryId, round])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// Community (§36-§39)
+// ---------------------------------------------------------------------------
+
+model CommunityPost {
+  id           String    @id @default(uuid()) @db.Uuid
+  content      String
+  type         PostType  @default(GENERAL)
+  images       String[]
+  linkUrl      String?
+  isPinned     Boolean   @default(false)
+isHidden    Boolean   @default(false)
+  hiddenReason String?
+  deletedAt   DateTime?
+  editedAt     DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  authorId String @db.Uuid
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  comments Comment[]
+  likes    Like[]
+  saves    SavedItem[]
+  reports  Report[]
+
+  @@index([createdAt])
+  @@index([authorId])
+  @@index([type])
+}
+
+model Comment {
+  id        String        @id @default(uuid()) @db.Uuid
+  content   String
+  status    CommentStatus @default(VISIBLE)
+  depth     Int           @default(0)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  deletedAt DateTime?
+
+  postId   String        @db.Uuid
+  post     CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId String        @db.Uuid
+  author   User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parentId String?       @db.Uuid
+  parent   Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  Comment[]     @relation("CommentReplies")
+  likes    Like[]
+  reports  Report[]
+
+  @@index([postId, createdAt])
+  @@index([parentId])
+  @@index([authorId])
+}
+
+model Like {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now())
+
+  userId    String         @db.Uuid
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId    String?        @db.Uuid
+  post      CommunityPost? @relation(fields: [postId], references: [id], onDelete: Cascade)
+  commentId String?        @db.Uuid
+  comment   Comment?       @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@unique([userId, commentId])
+  @@index([postId])
+}
+
+model Follow {
+  id          String   @id @default(uuid()) @db.Uuid
+  createdAt   DateTime @default(now())
+  followerId  String   @db.Uuid
+  followingId String   @db.Uuid
+
+  follower  User @relation("FollowFollower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("FollowFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followingId])
+}
+
+model SavedItem {
+  id        String              @id @default(uuid()) @db.Uuid
+  type      SavedItemType
+  createdAt DateTime            @default(now())
+  userId    String              @db.Uuid
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId    String?             @db.Uuid
+  post      CommunityPost?      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  gameId    String?             @db.Uuid
+  listingId String?             @db.Uuid
+  listing   MarketplaceListing? @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type, postId])
+  @@unique([userId, type, listingId])
+  @@index([userId, type])
+}
+
+model Block {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now())
+  blockerId String   @db.Uuid
+  blockedId String   @db.Uuid
+
+  blocker User @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockedId])
+}
+
+// ---------------------------------------------------------------------------
+// Messaging (§41) & notifications (§42-§43)
+// ---------------------------------------------------------------------------
+
+model Conversation {
+  id            String   @id @default(uuid()) @db.Uuid
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lastMessageAt DateTime @default(now())
+
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@index([lastMessageAt])
+}
+
+model ConversationParticipant {
+  id             String    @id @default(uuid()) @db.Uuid
+  conversationId String    @db.Uuid
+  userId         String    @db.Uuid
+  lastReadAt     DateTime?
+  unreadCount    Int       @default(0)
+  joinedAt       DateTime  @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id        String    @id @default(uuid()) @db.Uuid
+  content   String
+  createdAt DateTime  @default(now())
+  editedAt  DateTime?
+  deletedAt DateTime?
+
+  conversationId String       @db.Uuid
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String       @db.Uuid
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  reports        Report[]
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+}
+
+model Notification {
+  id        String               @id @default(uuid()) @db.Uuid
+  type      NotificationType
+  category  NotificationCategory
+  title     String
+  body      String
+  data      Json?
+  readAt    DateTime?
+  createdAt DateTime             @default(now())
+
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+}
+
+model NotificationPreference {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @unique @db.Uuid
+
+  gameInApp       Boolean @default(true)
+  gameEmail       Boolean @default(false)
+  tournamentInApp Boolean @default(true)
+  tournamentEmail Boolean @default(false)
+  eventInApp      Boolean @default(true)
+  eventEmail      Boolean @default(false)
+  socialInApp     Boolean @default(true)
+  socialEmail     Boolean @default(false)
+  messageInApp    Boolean @default(true)
+  messageEmail    Boolean @default(false)
+  marketingEmail  Boolean @default(false)
+  pushEnabled     Boolean @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Badges (§35), reviews (§45), reports/moderation (§58, §94)
+// ---------------------------------------------------------------------------
+
+model Badge {
+  id          String  @id @default(uuid()) @db.Uuid
+  key         String  @unique
+  name        String
+  description String
+  icon        String
+  threshold   Int?
+  isActive    Boolean @default(true)
+
+  users UserBadge[]
+}
+
+model UserBadge {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  badgeId   String   @db.Uuid
+  awardedAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@index([userId])
+}
+
+model Review {
+  id           String        @id @default(uuid()) @db.Uuid
+  rating       Int
+  comment      String
+  status       CommentStatus @default(VISIBLE)
+  overall      Int?
+  facilities   Int?
+  courtQuality Int?
+  staffRating  Int?
+  valueRating  Int?
+  verified     Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  reviewerId String @db.Uuid
+  reviewer   User   @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
+
+  subjectType ReviewSubjectType
+  courtId     String?           @db.Uuid
+  court       Court?            @relation(fields: [courtId], references: [id], onDelete: Cascade)
+  clubId      String?           @db.Uuid
+  coachId     String?           @db.Uuid
+  coach       CoachProfile?     @relation(fields: [coachId], references: [id], onDelete: Cascade)
+
+  reports Report[]
+
+  @@index([courtId])
+  @@index([coachId])
+  @@index([reviewerId])
+}
+
+model Report {
+  id         String       @id @default(uuid()) @db.Uuid
+  reason     ReportReason
+  details    String?
+  status     ReportStatus @default(OPEN)
+  resolution String?
+  createdAt  DateTime     @default(now())
+  resolvedAt DateTime?
+
+  reporterId String @db.Uuid
+  reporter   User   @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  targetType   ReportTargetType
+  targetUserId String?          @db.Uuid
+  targetUser   User?            @relation("ReportTargetUser", fields: [targetUserId], references: [id], onDelete: Cascade)
+  postId       String?          @db.Uuid
+  post         CommunityPost?   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  commentId    String?          @db.Uuid
+  comment      Comment?         @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  gameId       String?          @db.Uuid
+  courtId      String?          @db.Uuid
+  clubId       String?          @db.Uuid
+  eventId      String?          @db.Uuid
+  tournamentId String?          @db.Uuid
+  reviewId     String?          @db.Uuid
+  review       Review?          @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  listingId    String?          @db.Uuid
+  messageId    String?          @db.Uuid
+  message      Message?         @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  action     ModerationAction?
+  actionedBy String?           @db.Uuid
+  actionedAt DateTime?
+
+  @@index([status, createdAt])
+  @@index([reporterId])
+}
+
+model VerificationRequest {
+  id           String             @id @default(uuid()) @db.Uuid
+  type         VerificationType
+  status       VerificationStatus @default(PENDING)
+  name         String
+  organization String?
+  description  String?
+  contactInfo  String?
+  documents    String[]
+  reviewNote   String?
+  submittedAt  DateTime           @default(now())
+  decidedAt    DateTime?
+
+  applicantId String  @db.Uuid
+  applicant   User    @relation("VerificationApplicant", fields: [applicantId], references: [id], onDelete: Cascade)
+  reviewerId  String? @db.Uuid
+  reviewer    User?   @relation("VerificationReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  clubId      String? @db.Uuid
+
+  @@index([status, submittedAt])
+  @@index([applicantId])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  action     String
+  targetType String
+  targetId   String
+  reason     String?
+  metadata   Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  adminId String @db.Uuid
+  admin   User   @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([adminId])
+  @@index([targetType, targetId])
+}
+
+// ---------------------------------------------------------------------------
+// Marketplace (§46-§47), sponsors (§59), referrals (§51), analytics (§60)
+// ---------------------------------------------------------------------------
+
+model MarketplaceListing {
+  id           String           @id @default(uuid()) @db.Uuid
+  slug         String           @unique
+  title        String
+  description  String
+  images       String[]
+  price        Int
+  category     ListingCategory
+  condition    ListingCondition
+  city         City
+  isNegotiable Boolean          @default(false)
+  status       ListingStatus    @default(ACTIVE)
+  viewCount    Int              @default(0)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  deletedAt    DateTime?
+
+  sellerId String @db.Uuid
+  seller   User   @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  favorites MarketplaceFavorite[]
+  saves     SavedItem[]
+
+  @@index([category, status])
+  @@index([city])
+  @@index([sellerId])
+  @@index([createdAt])
+}
+
+model MarketplaceFavorite {
+  id        String             @id @default(uuid()) @db.Uuid
+  createdAt DateTime           @default(now())
+  userId    String             @db.Uuid
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId String             @db.Uuid
+  listing   MarketplaceListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listingId])
+  @@index([listingId])
+}
+
+model SellerProfile {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @unique @db.Uuid
+  businessName String
+  description  String?
+  city         City?
+  logoUrl      String?
+  phone        String?
+  website      String?
+  instagram    String?
+  facebook     String?
+  isVerified   Boolean   @default(false)
+  verifiedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Sponsor {
+  id          String           @id @default(uuid()) @db.Uuid
+  name        String
+  logoUrl     String?
+  imageUrl    String?
+  description String?
+  website     String?
+  campaign    String?
+  placement   SponsorPlacement
+  startsAt    DateTime?
+  endsAt      DateTime?
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+
+  managerId String? @db.Uuid
+  manager   User?   @relation("SponsorManager", fields: [managerId], references: [id], onDelete: SetNull)
+
+  @@index([placement, isActive])
+}
+
+model Referral {
+  id          String    @id @default(uuid()) @db.Uuid
+  code        String
+  referrerId  String    @db.Uuid
+  referredId  String    @unique @db.Uuid
+  rewardState String    @default("PENDING")
+  rewardLabel String?
+  convertedAt DateTime?
+  rewardedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  referrer User  @relation("ReferralReferrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  referred User? @relation("ReferralReferred", fields: [referredId], references: [id], onDelete: Cascade)
+
+  @@unique([referrerId, referredId])
+  @@index([code])
+}
+
+model AnalyticsEvent {
+  id         String             @id @default(uuid()) @db.Uuid
+  name       AnalyticsEventName
+  userId     String?            @db.Uuid
+  entityType String?
+  entityId   String?
+  metadata   Json?
+  createdAt  DateTime           @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([name, createdAt])
+  @@index([userId])
+}
+
+model FeatureFlag {
+  key         String   @id
+  enabled     Boolean  @default(false)
+  description String?
+  updatedAt   DateTime @updatedAt
+}
+
+model PlatformSettings {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}

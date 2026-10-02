@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192" role="img" aria-label="PickleNepal">
+  <rect width="192" height="192" rx="40" fill="#1b5e3f"/>
+  <circle cx="96" cy="96" r="52" fill="none" stroke="#ffc94d" stroke-width="8"/>
+  <path d="M52 132 L140 60" stroke="#ffc94d" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="96" cy="96" r="14" fill="#fff"/>
+</svg>
